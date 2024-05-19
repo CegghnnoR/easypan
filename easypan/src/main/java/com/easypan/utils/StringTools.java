@@ -1,10 +1,20 @@
 package com.easypan.utils;
 import com.easypan.exception.BusinessException;
+import org.apache.commons.lang3.RandomStringUtils;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 
 public class StringTools {
+    /**
+     * 生成随机数
+     * @param count
+     * @return
+     */
+    public static final String getRandomNumber(Integer count) {
+        return RandomStringUtils.random(count, false, true);
+    }
 
     public static void checkParam(Object param) {
         try {
