@@ -1,7 +1,9 @@
 package com.easypan.service.impl;
 
+import com.easypan.component.RedisComponent;
 import com.easypan.entity.config.AppConfig;
 import com.easypan.entity.constants.Constants;
+import com.easypan.entity.dto.SysSettingsDto;
 import com.easypan.entity.enums.PageSize;
 import com.easypan.entity.po.EmailCode;
 import com.easypan.entity.po.UserInfo;
@@ -43,6 +45,8 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 	private JavaMailSender javaMailSender;
 	@Resource
 	private AppConfig appConfig;
+	@Resource
+	private RedisComponent redisComponent;
 	/**
 	 * 根据条件查询列表
 	 */
@@ -146,9 +150,16 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 		return this.emailCodeMapper.deleteByEmailAndCode(email, code);
 	}
 
+	/**
+	 * 发送邮箱验证码
+	 *
+	 * @param email 注册邮箱
+	 * @param type 操作类型
+	 */
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public void sendEmailCode(String email, Integer type) {
+		// 如果是注册，找邮箱是否已经注册
 		if (Objects.equals(type, Constants.ZERO)) {
 			UserInfo userInfo = userInfoMapper.selectByEmail(email);
 			if (userInfo != null) {
@@ -156,8 +167,8 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 			}
 		}
 		String code = StringTools.getRandomNumber(Constants.LENGTH_5);
-		// TODO 发送验证码
-
+		// 发送验证码
+		sendMailCode(email, code);
 		// 将之前的验证码置为无效
 		emailCodeMapper.disableEmailCode(email);
 
@@ -169,11 +180,23 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 		emailCodeMapper.insert(emailCode);
 	}
 
+	/**
+	 * 发送验证码具体实现
+	 *
+	 * @param toEmail 发送的邮箱
+	 * @param code 发送的验证码
+	 */
 	private void sendMailCode(String toEmail, String code) {
 		try {
 			MimeMessage message = javaMailSender.createMimeMessage();
 			MimeMessageHelper helper = new MimeMessageHelper(message, true);
 			helper.setFrom(appConfig.getSendUserName());
+			helper.setTo(toEmail);
+			SysSettingsDto sysSettingsDto = redisComponent.getSysSettingsDto();
+			helper.setSubject(sysSettingsDto.getRegisterMailTitle());
+			helper.setText(String.format(sysSettingsDto.getRegisterEmailContent(), code));
+			helper.setSentDate(new Date());
+			javaMailSender.send(message);
 		} catch (Exception e) {
 			logger.error("邮件发送失败");
 			throw new BusinessException("邮件发送失败");
