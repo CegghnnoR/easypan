@@ -9,10 +9,10 @@ import java.lang.reflect.Method;
 public class StringTools {
     /**
      * 生成随机数
-     * @param count
-     * @return
+     * @param count 位数
+     * @return 随机数字符串
      */
-    public static final String getRandomNumber(Integer count) {
+    public static String getRandomNumber(Integer count) {
         return RandomStringUtils.random(count, false, true);
     }
 
@@ -24,7 +24,7 @@ public class StringTools {
                 String methodName = "get" + StringTools.upperCaseFirstLetter(field.getName());
                 Method method = param.getClass().getMethod(methodName);
                 Object object = method.invoke(param);
-                if (object != null && object instanceof java.lang.String && !StringTools.isEmpty(object.toString())
+                if (object instanceof String && !StringTools.isEmpty(object.toString())
                         || object != null && !(object instanceof java.lang.String)) {
                     notEmpty = true;
                     break;
@@ -53,11 +53,10 @@ public class StringTools {
     }
 
     public static boolean isEmpty(String str) {
-        if (null == str || "".equals(str) || "null".equals(str) || "\u0000".equals(str)) {
-            return true;
-        } else if ("".equals(str.trim())) {
-            return true;
-        }
-        return false;
+        return str == null
+                || str.isEmpty()
+                || "null".equals(str)
+                || "\u0000".equals(str)
+                || str.trim().isEmpty();
     }
 }

@@ -199,4 +199,9 @@ public class UserInfoServiceImpl implements UserInfoService {
 	public Integer deleteUserInfoByNickName(String nickName) {
 		return this.userInfoMapper.deleteByNickName(nickName);
 	}
+
+	@Override
+	public void register(String email, String nickName, String password, String emailCode) {
+
+	}
 }
