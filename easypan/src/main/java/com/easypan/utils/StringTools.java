@@ -1,5 +1,6 @@
 package com.easypan.utils;
 import com.easypan.exception.BusinessException;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.lang.reflect.Field;
@@ -58,5 +59,9 @@ public class StringTools {
                 || "null".equals(str)
                 || "\u0000".equals(str)
                 || str.trim().isEmpty();
+    }
+
+    public static String encodeByMd5(String originString) {
+        return isEmpty(originString) ? null : DigestUtils.md5Hex(originString);
     }
 }

@@ -2,6 +2,7 @@ package com.easypan.service;
 
 import java.util.List;
 
+import com.easypan.entity.dto.SessionWebUserDto;
 import com.easypan.entity.query.UserInfoQuery;
 import com.easypan.entity.po.UserInfo;
 import com.easypan.entity.vo.PaginationResultVO;
@@ -124,4 +125,6 @@ public interface UserInfoService {
 	Integer deleteUserInfoByNickName(String nickName);
 
 	void register(String email, String nickName, String password, String emailCode);
+
+	SessionWebUserDto login(String email, String password);
 }
