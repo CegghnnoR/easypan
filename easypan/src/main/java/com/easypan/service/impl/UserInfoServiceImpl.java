@@ -269,4 +269,17 @@ public class UserInfoServiceImpl implements UserInfoService {
 		redisComponent.saveUserSpaceUse(userInfo.getUserId(), userSpaceDto);
 		return null;
 	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void resetPwd(String email, String password, String emailCode) {
+		UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
+		if (userInfo == null) {
+			throw new BusinessException("邮箱账号不存在");
+		}
+		emailCodeService.checkCode(email, emailCode);
+		UserInfo updateInfo = new UserInfo();
+		updateInfo.setPassword(StringTools.encodeByMd5(password));
+		this.userInfoMapper.updateByEmail(updateInfo, email);
+	}
 }

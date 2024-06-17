@@ -127,4 +127,6 @@ public interface UserInfoService {
 	void register(String email, String nickName, String password, String emailCode);
 
 	SessionWebUserDto login(String email, String password);
+
+	void resetPwd(String email, String password, String emailCode);
 }

@@ -11,11 +11,18 @@ public class AppConfig {
     @Value("${admin.emails:}")
     private String adminEmails;
 
+    @Value("${project.folder:}")
+    private String projectFolder;
+
     public String getSendUserName() {
         return sendUserName;
     }
 
     public String getAdminEmails() {
         return adminEmails;
+    }
+
+    public String getProjectFolder() {
+        return projectFolder;
     }
 }
