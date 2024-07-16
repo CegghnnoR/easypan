@@ -71,4 +71,26 @@ public class StringTools {
         }
         return !path.contains("../") && !path.contains("..\\");
     }
+
+    public static String rename(String fileName) {
+        String fileNameReal = getFileNameNoSuffix(fileName);
+
+    }
+
+    public static String getFileNameNoSuffix(String fileName) {
+        int index = fileName.lastIndexOf(".");
+        if (index == -1) {
+            return fileName;
+        }
+        fileName = fileName.substring(0, index);
+        return fileName;
+    }
+
+    public static String getFileSuffix(String fileName) {
+        int index = fileName.lastIndexOf(".");
+        if (index == -1) {
+            return "";
+        }
+        return fileName.substring(index);
+    }
 }

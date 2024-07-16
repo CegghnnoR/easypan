@@ -3,6 +3,9 @@ package com.easypan.component;
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.SysSettingsDto;
 import com.easypan.entity.dto.UserSpaceDto;
+import com.easypan.entity.po.FileInfo;
+import com.easypan.entity.query.FileInfoQuery;
+import com.easypan.mappers.FileInfoMapper;
 import org.apache.tomcat.util.bcel.Const;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +15,9 @@ import javax.annotation.Resource;
 public class RedisComponent {
     @Resource
     private RedisUtils redisUtils;
+
+    @Resource
+    private FileInfoMapper<FileInfo, FileInfoQuery> fileInfoMapper;
 
     public SysSettingsDto getSysSettingsDto() {
         SysSettingsDto sysSettingsDto = (SysSettingsDto) redisUtils.get(Constants.REDIS_KEY_SYS_SETTING);
@@ -30,8 +36,8 @@ public class RedisComponent {
         UserSpaceDto spaceDto = (UserSpaceDto) redisUtils.get(Constants.REDIS_KEY_USER_SPACE_USE + userId);
         if (spaceDto == null) {
             spaceDto = new UserSpaceDto();
-            //TODO 查询当前用户已经上传文件大小总和
-            spaceDto.setUseSpace(0L);
+            Long useSpace = fileInfoMapper.selectUseSpace(userId);
+            spaceDto.setUseSpace(useSpace);
             spaceDto.setTotalSpace(getSysSettingsDto().getUserInitUseSpace() * Constants.MB);
             saveUserSpaceUse(userId, spaceDto);
         }

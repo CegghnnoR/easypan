@@ -2,9 +2,12 @@ package com.easypan.service;
 
 import java.util.List;
 
+import com.easypan.entity.dto.SessionWebUserDto;
+import com.easypan.entity.dto.UploadResultDto;
 import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.vo.PaginationResultVO;
+import org.springframework.web.multipart.MultipartFile;
 
 
 /**
@@ -69,4 +72,8 @@ public interface FileInfoService {
 	 */
 	Integer deleteFileInfoByFileIdAndUserId(String fileId,String userId);
 
+	UploadResultDto uploadFile(SessionWebUserDto webUserDto, String fileId,
+							   MultipartFile file, String fileName,
+							   String filePid, String fileMd5,
+							   Integer chunkIndex, Integer chunks);
 }

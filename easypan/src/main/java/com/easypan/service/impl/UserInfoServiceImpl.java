@@ -12,7 +12,10 @@ import com.easypan.entity.dto.SessionWebUserDto;
 import com.easypan.entity.dto.SysSettingsDto;
 import com.easypan.entity.dto.UserSpaceDto;
 import com.easypan.entity.enums.UserStatusEnum;
+import com.easypan.entity.po.FileInfo;
+import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.exception.BusinessException;
+import com.easypan.mappers.FileInfoMapper;
 import com.easypan.service.EmailCodeService;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,8 @@ public class UserInfoServiceImpl implements UserInfoService {
 
 	@Resource
 	private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
+	@Resource
+	private FileInfoMapper<FileInfo, FileInfoQuery> fileInfoMapper;
 	@Resource
 	private EmailCodeService emailCodeService;
 	@Resource
@@ -264,8 +269,8 @@ public class UserInfoServiceImpl implements UserInfoService {
         sessionWebUserDto.setAdmin(ArrayUtils.contains(appConfig.getAdminEmails().split(","), email));
 		// 用户空间
 		UserSpaceDto userSpaceDto = new UserSpaceDto();
-//		userSpaceDto.setUseSpace();
-		//TODO 查询当前用户已经上传文件大小总和
+		Long useSpace = fileInfoMapper.selectUseSpace(userInfo.getUserId());
+		userSpaceDto.setUseSpace(useSpace);
 		userSpaceDto.setTotalSpace(userInfo.getTotalSpace());
 		redisComponent.saveUserSpaceUse(userInfo.getUserId(), userSpaceDto);
 		return sessionWebUserDto;

@@ -1,12 +1,19 @@
 package com.easypan.service.impl;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.annotation.Resource;
 
+import com.easypan.component.RedisComponent;
+import com.easypan.entity.constants.Constants;
+import com.easypan.entity.dto.SessionWebUserDto;
+import com.easypan.entity.dto.UploadResultDto;
+import com.easypan.entity.dto.UserSpaceDto;
+import com.easypan.entity.enums.*;
+import com.easypan.exception.BusinessException;
 import org.springframework.stereotype.Service;
 
-import com.easypan.entity.enums.PageSize;
 import com.easypan.entity.query.FileInfoQuery;
 import com.easypan.entity.po.FileInfo;
 import com.easypan.entity.vo.PaginationResultVO;
@@ -14,6 +21,7 @@ import com.easypan.entity.query.SimplePage;
 import com.easypan.mappers.FileInfoMapper;
 import com.easypan.service.FileInfoService;
 import com.easypan.utils.StringTools;
+import org.springframework.web.multipart.MultipartFile;
 
 
 /**
@@ -24,7 +32,8 @@ public class FileInfoServiceImpl implements FileInfoService {
 
 	@Resource
 	private FileInfoMapper<FileInfo, FileInfoQuery> fileInfoMapper;
-
+	@Resource
+	private RedisComponent redisComponent;
 	/**
 	 * 根据条件查询列表
 	 */
@@ -126,5 +135,66 @@ public class FileInfoServiceImpl implements FileInfoService {
 	@Override
 	public Integer deleteFileInfoByFileIdAndUserId(String fileId, String userId) {
 		return this.fileInfoMapper.deleteByFileIdAndUserId(fileId, userId);
+	}
+
+	@Override
+	public UploadResultDto uploadFile(SessionWebUserDto webUserDto,
+									  String fileId, MultipartFile file,
+									  String fileName, String filePid,
+									  String fileMd5, Integer chunkIndex,
+									  Integer chunks) {
+		UploadResultDto resultDto = new UploadResultDto();
+		if (StringTools.isEmpty(fileId)) {
+			fileId = StringTools.getRandomNumber(Constants.LENGTH_10);
+		}
+		resultDto.setFileId(fileId);
+		Date curDate = new Date();
+		UserSpaceDto spaceDto = redisComponent.getUserSpaceUse(webUserDto.getUserId());
+
+		if (chunkIndex == 0) {
+			FileInfoQuery infoQuery = new FileInfoQuery();
+			infoQuery.setFileMd5(fileMd5);
+			infoQuery.setSimplePage(new SimplePage(0, 1));
+			infoQuery.setStatus(FileStatusEnums.USING.getStatus());
+			List<FileInfo> dbFileList = this.fileInfoMapper.selectList(infoQuery);
+			// 秒传
+			if (!dbFileList.isEmpty()) {
+				FileInfo dbFile = dbFileList.get(0);
+				// 判断文件大小
+				if (dbFile.getFileSize() + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
+					throw new BusinessException(ResponseCodeEnum.CODE_904);
+				}
+				dbFile.setFileId(fileId);
+				dbFile.setFilePid(filePid);
+				dbFile.setUserId(webUserDto.getUserId());
+				dbFile.setCreateTime(curDate);
+				dbFile.setLastUpdateTime(curDate);
+				dbFile.setStatus(FileStatusEnums.USING.getStatus());
+				dbFile.setDelFlag(FileDelFlagEnums.USING.getFlag());
+				dbFile.setFileMd5(fileMd5);
+				// 文件重命名
+				fileName = null;
+				dbFile.setFileName(fileName);
+				resultDto.setStatus(UploadStatusEnums.UPLOAD_SECONDS.getCode());
+
+				// 更新用户使用空间
+
+				return resultDto;
+			}
+		}
+		return resultDto;
+	}
+
+	private String autoRename(String filePid, String userId, String fileName) {
+		FileInfoQuery fileInfoQuery = new FileInfoQuery();
+		fileInfoQuery.setUserId(userId);
+		fileInfoQuery.setFilePid(filePid);
+		fileInfoQuery.setDelFlag(FileDelFlagEnums.USING.getFlag());
+		fileInfoQuery.setFileName(fileName);
+		Integer count = this.fileInfoMapper.selectCount(fileInfoQuery);
+		if (count > 0) {
+			fileName =
+		}
+		return fileName;
 	}
 }
