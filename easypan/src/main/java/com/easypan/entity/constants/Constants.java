@@ -12,6 +12,7 @@ public class Constants {
     public static final String FILE_FOLDER_FILE = "/file/";
     public static final String FILE_FOLDER_AVATAR_NAME = "avatar/";
     public static final String AVATAR_SUFFIX = ".jpg";
+    public static final String FILE_FOLDER_TEMP = "/temp/";
     public static final String AVATAR_DEFAULT = "default_avatar.jpg";
     public static final Long MB = 1024 * 1024L;
     public static final Integer REDIS_KEY_EXPIRES_ONE_MIN = 60;

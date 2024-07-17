@@ -78,5 +78,7 @@ public interface UserInfoMapper<T,P> extends BaseMapper<T,P> {
 	 */
 	 T selectByNickName(@Param("nickName") String nickName);
 
-
+	 Integer updateUserSpace(@Param("userId") String userId,
+							 @Param("useSpace") Long useSpace,
+							 @Param("totalSpace") Long totalSpace);
 }

@@ -43,4 +43,21 @@ public class RedisComponent {
         }
         return spaceDto;
     }
+
+    public Long getFileTempSize(String userId, String fileId) {
+        Long currentSize = 0L;
+    }
+
+    private Long getFileSizeFromRedis(String key) {
+        Object sizeObj = redisUtils.get(key);
+        if (sizeObj == null) {
+            return 0L;
+        }
+        if (sizeObj instanceof Integer) {
+            return ((Integer) sizeObj).longValue();
+        } else if (sizeObj instanceof Long) {
+            return (Long) sizeObj;
+        }
+        return 0L;
+    }
 }

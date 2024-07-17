@@ -1,4 +1,5 @@
 package com.easypan.utils;
+import com.easypan.entity.constants.Constants;
 import com.easypan.exception.BusinessException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -74,7 +75,8 @@ public class StringTools {
 
     public static String rename(String fileName) {
         String fileNameReal = getFileNameNoSuffix(fileName);
-
+        String suffix = getFileSuffix(fileName);
+        return fileNameReal + "_" + getRandomNumber(Constants.LENGTH_5) + suffix;
     }
 
     public static String getFileNameNoSuffix(String fileName) {

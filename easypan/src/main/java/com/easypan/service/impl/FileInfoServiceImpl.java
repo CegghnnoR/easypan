@@ -1,17 +1,22 @@
 package com.easypan.service.impl;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 
 import javax.annotation.Resource;
 
 import com.easypan.component.RedisComponent;
+import com.easypan.entity.config.AppConfig;
 import com.easypan.entity.constants.Constants;
 import com.easypan.entity.dto.SessionWebUserDto;
 import com.easypan.entity.dto.UploadResultDto;
 import com.easypan.entity.dto.UserSpaceDto;
 import com.easypan.entity.enums.*;
+import com.easypan.entity.po.UserInfo;
+import com.easypan.entity.query.UserInfoQuery;
 import com.easypan.exception.BusinessException;
+import com.easypan.mappers.UserInfoMapper;
 import org.springframework.stereotype.Service;
 
 import com.easypan.entity.query.FileInfoQuery;
@@ -21,6 +26,7 @@ import com.easypan.entity.query.SimplePage;
 import com.easypan.mappers.FileInfoMapper;
 import com.easypan.service.FileInfoService;
 import com.easypan.utils.StringTools;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -34,6 +40,10 @@ public class FileInfoServiceImpl implements FileInfoService {
 	private FileInfoMapper<FileInfo, FileInfoQuery> fileInfoMapper;
 	@Resource
 	private RedisComponent redisComponent;
+	@Resource
+	private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
+	@Resource
+	private AppConfig appConfig;
 	/**
 	 * 根据条件查询列表
 	 */
@@ -138,6 +148,7 @@ public class FileInfoServiceImpl implements FileInfoService {
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public UploadResultDto uploadFile(SessionWebUserDto webUserDto,
 									  String fileId, MultipartFile file,
 									  String fileName, String filePid,
@@ -173,13 +184,22 @@ public class FileInfoServiceImpl implements FileInfoService {
 				dbFile.setDelFlag(FileDelFlagEnums.USING.getFlag());
 				dbFile.setFileMd5(fileMd5);
 				// 文件重命名
-				fileName = null;
+				fileName = autoRename(filePid, webUserDto.getUserId(), fileName);
 				dbFile.setFileName(fileName);
+				this.fileInfoMapper.insert(dbFile);
 				resultDto.setStatus(UploadStatusEnums.UPLOAD_SECONDS.getCode());
-
 				// 更新用户使用空间
-
+				updateUserSpace(webUserDto, dbFile.getFileSize());
 				return resultDto;
+			}
+			// 判断磁盘空间
+			redisComponent
+			// 暂存临时目录
+			String tempFolderName = appConfig.getProjectFolder() + Constants.FILE_FOLDER_TEMP;
+			String currentUserFolderName = webUserDto.getUserId() + fileId;
+			File tempFileFolder = new File(tempFolderName + currentUserFolderName);
+			if (!tempFileFolder.exists()) {
+				tempFileFolder.mkdirs();
 			}
 		}
 		return resultDto;
@@ -193,8 +213,18 @@ public class FileInfoServiceImpl implements FileInfoService {
 		fileInfoQuery.setFileName(fileName);
 		Integer count = this.fileInfoMapper.selectCount(fileInfoQuery);
 		if (count > 0) {
-			fileName =
+			fileName = StringTools.rename(fileName);
 		}
 		return fileName;
+	}
+
+	private void updateUserSpace(SessionWebUserDto webUserDto, Long useSpace) {
+		Integer count = userInfoMapper.updateUserSpace(webUserDto.getUserId(), useSpace, null);
+		if (count == 0) {
+			throw new BusinessException(ResponseCodeEnum.CODE_904);
+		}
+		UserSpaceDto spaceDto = redisComponent.getUserSpaceUse(webUserDto.getUserId());
+		spaceDto.setUseSpace(spaceDto.getUseSpace() + useSpace);
+		redisComponent.saveUserSpaceUse(webUserDto.getUserId(), spaceDto);
 	}
 }
