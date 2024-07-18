@@ -17,6 +17,8 @@ import com.easypan.entity.po.UserInfo;
 import com.easypan.entity.query.UserInfoQuery;
 import com.easypan.exception.BusinessException;
 import com.easypan.mappers.UserInfoMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.easypan.entity.query.FileInfoQuery;
@@ -35,7 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Service("fileInfoService")
 public class FileInfoServiceImpl implements FileInfoService {
-
+	private static final Logger logger = LoggerFactory.getLogger(FileInfoServiceImpl.class);
 	@Resource
 	private FileInfoMapper<FileInfo, FileInfoQuery> fileInfoMapper;
 	@Resource
@@ -155,52 +157,62 @@ public class FileInfoServiceImpl implements FileInfoService {
 									  String fileMd5, Integer chunkIndex,
 									  Integer chunks) {
 		UploadResultDto resultDto = new UploadResultDto();
-		if (StringTools.isEmpty(fileId)) {
-			fileId = StringTools.getRandomNumber(Constants.LENGTH_10);
-		}
-		resultDto.setFileId(fileId);
-		Date curDate = new Date();
-		UserSpaceDto spaceDto = redisComponent.getUserSpaceUse(webUserDto.getUserId());
+		try {
+			if (StringTools.isEmpty(fileId)) {
+				fileId = StringTools.getRandomString(Constants.LENGTH_10);
+			}
+			resultDto.setFileId(fileId);
+			Date curDate = new Date();
+			UserSpaceDto spaceDto = redisComponent.getUserSpaceUse(webUserDto.getUserId());
 
-		if (chunkIndex == 0) {
-			FileInfoQuery infoQuery = new FileInfoQuery();
-			infoQuery.setFileMd5(fileMd5);
-			infoQuery.setSimplePage(new SimplePage(0, 1));
-			infoQuery.setStatus(FileStatusEnums.USING.getStatus());
-			List<FileInfo> dbFileList = this.fileInfoMapper.selectList(infoQuery);
-			// 秒传
-			if (!dbFileList.isEmpty()) {
-				FileInfo dbFile = dbFileList.get(0);
-				// 判断文件大小
-				if (dbFile.getFileSize() + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
+			if (chunkIndex == 0) {
+				FileInfoQuery infoQuery = new FileInfoQuery();
+				infoQuery.setFileMd5(fileMd5);
+				infoQuery.setSimplePage(new SimplePage(0, 1));
+				infoQuery.setStatus(FileStatusEnums.USING.getStatus());
+				List<FileInfo> dbFileList = this.fileInfoMapper.selectList(infoQuery);
+				// 秒传
+				if (!dbFileList.isEmpty()) {
+					FileInfo dbFile = dbFileList.get(0);
+					// 判断文件大小
+					if (dbFile.getFileSize() + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
+						throw new BusinessException(ResponseCodeEnum.CODE_904);
+					}
+					dbFile.setFileId(fileId);
+					dbFile.setFilePid(filePid);
+					dbFile.setUserId(webUserDto.getUserId());
+					dbFile.setCreateTime(curDate);
+					dbFile.setLastUpdateTime(curDate);
+					dbFile.setStatus(FileStatusEnums.USING.getStatus());
+					dbFile.setDelFlag(FileDelFlagEnums.USING.getFlag());
+					dbFile.setFileMd5(fileMd5);
+					// 文件重命名
+					fileName = autoRename(filePid, webUserDto.getUserId(), fileName);
+					dbFile.setFileName(fileName);
+					this.fileInfoMapper.insert(dbFile);
+					resultDto.setStatus(UploadStatusEnums.UPLOAD_SECONDS.getCode());
+					// 更新用户使用空间
+					updateUserSpace(webUserDto, dbFile.getFileSize());
+					return resultDto;
+				}
+				// 判断磁盘空间
+				Long currentTempSize = redisComponent.getFileTempSize(webUserDto.getUserId(), fileId);
+				if (file.getSize() + currentTempSize + spaceDto.getUseSpace() > spaceDto.getTotalSpace()) {
 					throw new BusinessException(ResponseCodeEnum.CODE_904);
 				}
-				dbFile.setFileId(fileId);
-				dbFile.setFilePid(filePid);
-				dbFile.setUserId(webUserDto.getUserId());
-				dbFile.setCreateTime(curDate);
-				dbFile.setLastUpdateTime(curDate);
-				dbFile.setStatus(FileStatusEnums.USING.getStatus());
-				dbFile.setDelFlag(FileDelFlagEnums.USING.getFlag());
-				dbFile.setFileMd5(fileMd5);
-				// 文件重命名
-				fileName = autoRename(filePid, webUserDto.getUserId(), fileName);
-				dbFile.setFileName(fileName);
-				this.fileInfoMapper.insert(dbFile);
-				resultDto.setStatus(UploadStatusEnums.UPLOAD_SECONDS.getCode());
-				// 更新用户使用空间
-				updateUserSpace(webUserDto, dbFile.getFileSize());
-				return resultDto;
+				// 暂存临时目录
+				String tempFolderName = appConfig.getProjectFolder() + Constants.FILE_FOLDER_TEMP;
+				String currentUserFolderName = webUserDto.getUserId() + fileId;
+				File tempFileFolder = new File(tempFolderName + currentUserFolderName);
+				if (!tempFileFolder.exists()) {
+					tempFileFolder.mkdirs();
+				}
+
+				File newFile = new File(tempFileFolder.getPath() + "/" + chunkIndex);
+				file.transferTo(newFile);
 			}
-			// 判断磁盘空间
-			redisComponent
-			// 暂存临时目录
-			String tempFolderName = appConfig.getProjectFolder() + Constants.FILE_FOLDER_TEMP;
-			String currentUserFolderName = webUserDto.getUserId() + fileId;
-			File tempFileFolder = new File(tempFolderName + currentUserFolderName);
-			if (!tempFileFolder.exists()) {
-				tempFileFolder.mkdirs();
-			}
+		} catch (Exception e) {
+			logger.error("文件上传失败", e);
 		}
 		return resultDto;
 	}

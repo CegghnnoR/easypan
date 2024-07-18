@@ -17,6 +17,9 @@ public class StringTools {
     public static String getRandomNumber(Integer count) {
         return RandomStringUtils.random(count, false, true);
     }
+    public static String getRandomString(Integer count) {
+        return RandomStringUtils.random(count, true, true);
+    }
 
     public static void checkParam(Object param) {
         try {
@@ -76,7 +79,7 @@ public class StringTools {
     public static String rename(String fileName) {
         String fileNameReal = getFileNameNoSuffix(fileName);
         String suffix = getFileSuffix(fileName);
-        return fileNameReal + "_" + getRandomNumber(Constants.LENGTH_5) + suffix;
+        return fileNameReal + "_" + getRandomString(Constants.LENGTH_5) + suffix;
     }
 
     public static String getFileNameNoSuffix(String fileName) {

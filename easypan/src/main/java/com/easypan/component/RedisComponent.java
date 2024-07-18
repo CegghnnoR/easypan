@@ -44,8 +44,14 @@ public class RedisComponent {
         return spaceDto;
     }
 
+    public void saveFileTempSize(String userId, String fileId, Long fileSize) {
+        Long currentSize = getFileTempSize(userId, fileId);
+        redisUtils.setex(Constants.REDIS_KEY_USER_FILE_TEMP_SIZE + userId + fileId, currentSize + fileSize, Constants.REDIS_KEY_EXPIRES_ONE_HOUR);
+    }
+
+    // 获取临时文件大小
     public Long getFileTempSize(String userId, String fileId) {
-        Long currentSize = 0L;
+        return getFileSizeFromRedis(Constants.REDIS_KEY_USER_FILE_TEMP_SIZE + userId + fileId);
     }
 
     private Long getFileSizeFromRedis(String key) {
